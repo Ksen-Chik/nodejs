@@ -1,0 +1,17 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "num": "node colors.js 2 22",
+    "date": "node index.js 21-19-27-10-2021 02-54-12-11-2021 03-12-10-05-2022",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "moment": "^2.29.1"
+  }
+}
