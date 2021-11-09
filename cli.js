@@ -1,64 +1,43 @@
-const fs = require('fs/promises');
-const {lstatSync} = require('fs');
-const inquirer = require('inquirer');
-const yargs = require('yargs');
+const prom = require('fs/promises');
+const fs = require('fs');
+const http = require('http');
 const path = require('path');
+const url = require('url');
+const { lstatSync } = require('fs');
 
-let currentDirectory = process.cwd();
-const options = yargs
-    .positional('d', {
-        describe: 'Path to directory',
-        default: process.cwd(),
-    })
-    .positional('p', {
-        describe: 'Pattern',
-        default: '',
-    }).argv;
-
-/**
- * 1. is dir -> next
- *      else -> read
- */
-
-class ListItem {
-    constructor(path, fileName) {
-        this.path = path;
-        this.fileName = fileName;
-    }
-
-    get isDir() {
-        return lstatSync(this.path).isDirectory();
-    }
-}
-
-const run = async () => {
-    const list = await fs.readdir(currentDirectory);
-    const items = list.map(fileName =>
-        new ListItem(path.join(currentDirectory, fileName), fileName));
-
-    const item = await inquirer
-        .prompt([
-            {
-                name: 'listItem',
-                type: 'list',
-                message: `Choose: ${currentDirectory}`,
-                choices: items.map(item => ({ name: item.fileName, value: item })),
-            }
-        ])
-        .then(answer => answer.listItem);
-
-    if (item.isDir) {
-        currentDirectory = item.path;
-        return await run();
+const showData = async (pathData) => {
+    if (lstatSync(pathData).isDirectory()) {
+        return await prom.readdir(pathData);
     } else {
-        const data = await fs.readFile(item.path, 'utf-8');
-
-        if (options.p == null) console.log(data);
-        else {
-            const regExp = new RegExp(options.p, 'igm');
-            console.log(data.match(regExp));
-        }
+        return await prom.readFile(pathData, 'utf-8');
     }
-}
+};
 
-run();
+const server = http.createServer(async (req, res) => {
+    const queryParams = url.parse(req.url, true).query;
+
+    let filePath = '';
+
+    if (req.url === '/' || req.url === '/index.js') {
+
+        filePath = req.url === '/' ?
+            path.join(__dirname, './index.html') :
+            path.join(__dirname, './index.js');
+
+        const readStream = fs.createReadStream(filePath);
+        res.writeHead(200, 'OK', {
+            'Content-Type': 'text/html',
+        })
+        readStream.pipe(res);
+
+    } else {
+        console.log(queryParams.path);
+        filePath = path.join(__dirname, queryParams.path);
+        res.writeHead(200, 'OK', {
+            'Content-Type': 'json/html',
+        })
+        let data = await showData(filePath);
+        res.end(JSON.stringify(data));
+    }
+});
+server.listen(3000);
